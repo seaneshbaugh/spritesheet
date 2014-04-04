@@ -1,0 +1,4 @@
+default_encoding: "utf-8"
+
+protection:
+  except: :json_csrf

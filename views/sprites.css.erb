@@ -1,0 +1,17 @@
+.sprite {
+  background-clip: padding-box;
+  background-image: url(spritesheet.png);
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  display: inline-block;
+  line-height: 20px;
+  vertical-align: middle;
+}
+
+<% @sprites.each do |name, positions| %>
+.sprite.<%= name %> {
+  background-position: <%= positions[:x1] > 0 ? "-#{positions[:x1]}px" : '0' %> <%= positions[:y1] > 0 ? "-#{positions[:y1]}px" : '0' %>;
+  height: <%= positions[:y2] - positions[:y1] %>px;
+  width: <%= positions[:x2] - positions[:x1] %>px;
+}
+<% end %>
