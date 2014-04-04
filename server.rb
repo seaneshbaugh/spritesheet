@@ -64,9 +64,9 @@ module Application
 
         system("montage #{files.join(' ')} -background none -mode Concatenate -tile #{columns}x #{spritesheet_file_name} > /dev/null 2>&1")
 
-        @class = (params[:class] || 'sprite').strip.gsub(/[^a-zA-Z\d-_]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
+        @class = (params[:class] || 'sprite').strip.gsub(/[^a-zA-Z\d-]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
 
-        prefix = (params[:prefix] || @class).strip.gsub(/[^a-zA-Z\d-_]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
+        prefix = (params[:prefix] || @class).strip.gsub(/[^a-zA-Z\d-]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
 
         @sprites = {}
 
