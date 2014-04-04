@@ -52,7 +52,21 @@ module Application
 
         spritesheet_file_name = File.join(tmp_directory, 'spritesheet.png')
 
-        system("montage #{files.join(' ')} -background none -mode Concatenate -tile 5x #{spritesheet_file_name} > /dev/null 2>&1")
+        if params[:columns].present?
+          columns = params[:columns].to_i
+
+          if columns < 1
+            columns = 1
+          end
+        else
+          columns = 5
+        end
+
+        system("montage #{files.join(' ')} -background none -mode Concatenate -tile #{columns}x #{spritesheet_file_name} > /dev/null 2>&1")
+
+        @class = (params[:class] || 'sprite').strip.gsub(/[^a-zA-Z\d-_]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
+
+        prefix = (params[:prefix] || @class).strip.gsub(/[^a-zA-Z\d-_]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
 
         @sprites = {}
 
@@ -60,7 +74,7 @@ module Application
 
         y = 0
 
-        files.each_slice(5) do |row|
+        files.each_slice(columns) do |row|
           x = 0
 
           largest_height = 0
@@ -68,7 +82,7 @@ module Application
           row.each do |file|
             image = Magick::Image.read(file)
 
-            @sprites["sprite-#{n}"] = { :x1 => x, :y1 => y, :x2 => x + image[0].columns, :y2 => y + image[0].rows }
+            @sprites["#{prefix}-#{n}"] = { :x1 => x, :y1 => y, :x2 => x + image[0].columns, :y2 => y + image[0].rows }
 
             x += image[0].columns
 

@@ -11,5 +11,23 @@
     </p>
   <% end %>
   <input type="file" name="file" id="file-upload-form-file" class="form-control" required>
+  <div class="panel-group" id="advanced-options">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h4 class="panel-title">
+          <a data-toggle="collapse" data-parent="#advanced-options" href="#advanced-options-panel">
+            Advanced Options
+          </a>
+        </h4>
+      </div>
+      <div id="advanced-options-panel" class="panel-collapse collapse">
+        <div class="panel-body">
+          <input type="text" name="class" id="file-upload-form-prefix" class="form-control" placeholder="CSS Class Name">
+          <input type="text" name="prefix" id="file-upload-form-prefix" class="form-control" placeholder="CSS Class Prefix">
+          <input type="text" name="columns" id="file-upload-form-columns" class="form-control" placeholder="Number of Columns">
+        </div>
+      </div>
+    </div>
+  </div>
   <button type="submit" id="file-upload-form-submit" class="btn btn-lg btn-primary btn-block">Upload</button>
 </form>
