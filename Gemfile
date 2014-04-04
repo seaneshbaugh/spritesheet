@@ -5,3 +5,8 @@ gem 'rmagick', :require => 'RMagick'
 gem 'rubyzip', '0.9.9'
 gem 'sinatra'
 gem 'sinatra-contrib'
+
+group :development do
+  gem 'capistrano'
+  gem 'capistrano-ext'
+end
