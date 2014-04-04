@@ -1,1 +1,1 @@
-# Spritesheet Generator
+# Sprite Sheet Generator

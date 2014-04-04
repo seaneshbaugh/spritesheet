@@ -1,9 +1,15 @@
-<% if @error.present? %>
-  <div class="error">
-    <%= @error %>
-  </div>
-<% end %>
-<form action="/" method="POST" enctype="multipart/form-data" id="file-upload-form">
-  <input type="file" name="file" id="file-upload-form-file">
-  <input type="submit" name="submit" value="Upload" id="file-upload-form-submit">
+<form action="/" method="POST" enctype="multipart/form-data" id="file-upload-form" role="form">
+  <h1>
+    Sprite Sheet<br>Generator
+  </h1>
+  <p class="lead">
+    Upload a zip file that contains PNG files and get a zip file containing a sprite sheet and a corresponding CSS file.
+  </p>
+  <% if @error.present? %>
+    <p class="error">
+      <%= @error %>
+    </p>
+  <% end %>
+  <input type="file" name="file" id="file-upload-form-file" class="form-control" required>
+  <button type="submit" id="file-upload-form-submit" class="btn btn-lg btn-primary btn-block">Upload</button>
 </form>

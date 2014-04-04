@@ -1,0 +1,15 @@
+/* TEAM */
+  Developer: Sean Eshbaugh
+  Site: http://seaneshbaugh.com/
+  Twitter: http://twitter.com/bungoman
+  Contact: sean (at) seaneshbaugh.com
+
+/* SITE */
+  Created On: 2014/04/04
+  Last Updated: 2014/04/04
+  Language: English
+  Doctype: HTML5
+  Lovingly Made In: RubyMine 5.4.3.2.1
+  Lovingly Made On: OSX 10.9.2 Mavericks
+  Lovingly Made With: Ruby, Sinatra, ERB, HTML5, CSS3, JavaScript, jQuery
+  Source Available At: https://github.com/seaneshbaugh/spritesheet
