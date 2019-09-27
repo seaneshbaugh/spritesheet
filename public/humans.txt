@@ -1,15 +1,14 @@
 /* TEAM */
   Developer: Sean Eshbaugh
-  Site: http://seaneshbaugh.com/
-  Twitter: http://twitter.com/bungoman
+  Site: https://seaneshbaugh.com/
   Contact: sean (at) seaneshbaugh.com
 
 /* SITE */
   Created On: 2014/04/04
-  Last Updated: 2014/04/04
+  Last Updated: 2019/09/27
   Language: English
   Doctype: HTML5
-  Lovingly Made In: RubyMine 5.4.3.2.1
-  Lovingly Made On: OSX 10.9.2 Mavericks
-  Lovingly Made With: Ruby, Sinatra, ERB, HTML5, CSS3, JavaScript, jQuery
+  Lovingly Made In: Emacs
+  Lovingly Made On: macOS 10.13.6 High Sierra
+  Lovingly Made With: Ruby, Sinatra, ERB, HTML5, CSS3, JavaScript
   Source Available At: https://github.com/seaneshbaugh/spritesheet
