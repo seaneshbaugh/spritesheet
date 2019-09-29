@@ -5,12 +5,12 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const env = process.env.NODE_ENV || "development";
 const production = env == "production";
 
-const node_modules_dir = "/node_modules";
+const node_modules_dir = "/assets/node_modules";
 
 const plugins = [
   new MiniCssExtractPlugin({
     filename: "[name].css",
-    chunkFilename: "[id].css"
+    chunkFilename: "[id].css",
     ignoreOrder: false
   })
 ];
@@ -47,14 +47,13 @@ const common = {
       {
         test: /\.s[ac]ss$/,
         use: [
-          {
+          (production ? {
             loader: MiniCssExtractPlugin.loader,
             options: {
               publicPath: "../public",
               hmr: !production
             }
-          },
-          "style-loader",
+          } : 'style-loader'),
           "css-loader",
           "sass-loader"
         ]
@@ -87,10 +86,10 @@ const common = {
 };
 
 module.exports = [
-  merge(commons, {
+  merge(common, {
     entry: [
-      __dirname: + "/app/app.scss",
-      __dirname: + "/app/app.js",
+      __dirname + "/app/app.scss",
+      __dirname + "/app/app.js",
     ],
     output: {
       path: __dirname + "/../public",

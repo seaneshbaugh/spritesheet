@@ -1,5 +1,7 @@
 module Application
   class Main < Sinatra::Base
+    include Helpers::Assets
+
     configure :development do
       register Sinatra::Reloader
     end

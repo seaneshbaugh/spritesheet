@@ -1,13 +1,15 @@
 FROM node:12.10-alpine
 
+ENV WEBPACK_DEV_SERVER_PORT 8080
+
+RUN mkdir /assets
+
+WORKDIR /assets
+
+COPY assets/package.json assets/yarn.lock ./
+
 RUN npm install -g yarn
 
-WORKDIR /app/assets
+EXPOSE $WEBPACK_DEV_SERVER_PORT
 
-COPY assets/package.json assets/*yarn* ./
-
-RUN yarn install
-
-COPY . .
-
-CMD ["yarn", "run", "build"]
+CMD ["yarn", "run", "start:dev"]

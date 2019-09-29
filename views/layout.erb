@@ -6,9 +6,7 @@
   <meta name="description" content="Sprite Sheet Generator">
   <meta name="author" content="Sean Eshbaugh">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="/stylesheets/bootstrap.min.css" media="all" rel="stylesheet" type="text/css">
-  <link href="/stylesheets/bootstrap-theme.min.css" media="all" rel="stylesheet" type="text/css">
-  <link href="/stylesheets/screen.css" media="all" rel="stylesheet" type="text/css">
+  <script defer src="<%= asset_pack_path('js/app.js') %>"></script>
   <link href="/favicon.ico" rel="shortcut icon">
   <link href="/humans.txt" rel="author">
 </head>
@@ -17,8 +15,5 @@
   <div class="container">
     <%= yield %>
   </div>
-  <script src="/javascripts/jquery-2.1.0.min.js"></script>
-  <script src="/javascripts/bootstrap.min.js"></script>
-  <script src="/javascripts/application.js"></script>
 </body>
 </html>
