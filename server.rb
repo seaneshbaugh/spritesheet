@@ -1,3 +1,8 @@
+# frozen_string_literal: true
+
+require_relative 'helpers/assets'
+require_relative 'models/spritesheet'
+
 module Application
   class Main < Sinatra::Base
     include Helpers::Assets
@@ -40,7 +45,7 @@ module Application
           f.write file.read
         end
 
-        Zip::ZipFile.open(tmp_file_name) do |zip_file|
+        Zip::File.open(tmp_file_name) do |zip_file|
           zip_file.each do |f|
             path = File.join(tmp_directory, 'sprites', f.name)
 
@@ -50,75 +55,13 @@ module Application
           end
         end
 
-        files = Dir.glob(File.join(tmp_directory, 'sprites', '**/*.png'))
+        files = Dir.glob(File.join(tmp_directory, 'sprites', '**/*.{gif,png}'))
 
-        spritesheet_file_name = File.join(tmp_directory, 'spritesheet.png')
+        logger.info files.inspect
 
-        if params[:columns].present?
-          columns = params[:columns].to_i
+        spritesheet = Spritesheet.new(files, tmp_directory: tmp_directory)
 
-          if columns < 1
-            columns = 1
-          end
-        else
-          columns = 5
-        end
-
-        system("montage #{files.join(' ')} -background none -mode Concatenate -tile #{columns}x #{spritesheet_file_name} > /dev/null 2>&1")
-
-        @class = (params[:class] || 'sprite').strip.gsub(/[^a-zA-Z\d-]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
-
-        prefix = (params[:prefix] || @class).strip.gsub(/[^a-zA-Z\d-]/, '').gsub(/^(-|_)+|(-|_)+$/, '')
-
-        @sprites = {}
-
-        n = 1
-
-        y = 0
-
-        files.each_slice(columns) do |row|
-          x = 0
-
-          largest_height = 0
-
-          row.each do |file|
-            image = Magick::Image.read(file)
-
-            @sprites["#{prefix}-#{n}"] = { :x1 => x, :y1 => y, :x2 => x + image[0].columns, :y2 => y + image[0].rows }
-
-            x += image[0].columns
-
-            if image[0].rows > largest_height
-              largest_height = image[0].rows
-            end
-
-            n += 1
-          end
-
-          y += largest_height
-        end
-
-        template_file_name = File.join(settings.views, 'sprites.css.erb')
-
-        css_file_name = File.join(tmp_directory, 'sprites.css')
-
-        css_file = File.new(css_file_name, 'w')
-
-        css_file.puts ERB.new(File.read(template_file_name), 0, '>').result(binding)
-
-        css_file.close
-
-        zip_file_name = File.join(tmp_directory, 'spritesheet.zip')
-
-        Zip::ZipOutputStream.open(zip_file_name) do |zip_file|
-          zip_file.put_next_entry('spritesheet.png')
-
-          zip_file.print IO.read(spritesheet_file_name)
-
-          zip_file.put_next_entry('sprites.css')
-
-          zip_file.print IO.read(css_file_name)
-        end
+        zip_file_name = spritesheet.generate!
 
         response.headers['content_type'] = 'application/octet-stream'
 
@@ -126,7 +69,7 @@ module Application
 
         response.write(File.read(zip_file_name))
       ensure
-        FileUtils.remove_entry_secure tmp_directory
+        FileUtils.remove_entry_secure(tmp_directory)
       end
     end
   end

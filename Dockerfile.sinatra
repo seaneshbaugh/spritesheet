@@ -5,7 +5,7 @@ ENV BUNDLER_VERSION 2.0.2
 ENV APP_PORT 3000
 ENV RACK_ENV development
 
-RUN apk add --update build-base libffi-dev
+RUN apk add --update build-base imagemagick
 
 RUN mkdir $APP_HOME
 
