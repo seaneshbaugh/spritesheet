@@ -5,6 +5,9 @@
     "build": "NODE_ENV=production /node_modules/webpack/bin/webpack.js -p",
     "start:dev": "webpack-dev-server --host 0.0.0.0 --hot --inline"
   },
+  "dependencies": {
+    "materialize-css": "1.0.0"
+  },
   "devDependencies": {
     "@babel/core": "7.6.2",
     "@babel/preset-env": "7.6.2",
