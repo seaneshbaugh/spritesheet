@@ -4,11 +4,11 @@ require 'sinatra/base'
 
 module Helpers
   module Assets
-    def asset_pack_path(asset_file_path)
+    def asset_pack_path(path)
       if ENV['RACK_ENV'] == 'development'
-        "http://localhost:8080/#{asset_file_path}"
+        "#{settings.webpack_dev_server_url}#{path}"
       else
-        asset_file_path
+        path
       end
     end
   end
