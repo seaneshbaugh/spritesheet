@@ -1,0 +1,9 @@
+AllCops:
+  Exclude:
+    - assets/node_modules/**/*
+
+Metrics/LineLength:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
