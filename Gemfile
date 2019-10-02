@@ -1,4 +1,4 @@
-# frozen_string_literal
+# frozen_string_literal: true
 
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
@@ -13,5 +13,5 @@ gem 'sinatra', '2.0.7'
 gem 'sinatra-contrib', '2.0.7'
 
 group :development do
-  gem 'rubocop', '0.74.0'
+  gem 'rubocop', '0.75.0', require: false
 end
