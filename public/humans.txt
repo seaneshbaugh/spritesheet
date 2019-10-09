@@ -5,10 +5,8 @@
 
 /* SITE */
   Created On: 2014/04/04
-  Last Updated: 2019/09/27
-  Language: English
-  Doctype: HTML5
-  Lovingly Made In: Emacs
-  Lovingly Made On: macOS 10.13.6 High Sierra
-  Lovingly Made With: Ruby, Sinatra, ERB, HTML5, CSS3, JavaScript
+  Last Updated: 2019/10/09
+  Made In: Emacs
+  Made On: macOS
+  Made With: Sinatra, React
   Source Available At: https://github.com/seaneshbaugh/spritesheet
