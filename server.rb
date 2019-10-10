@@ -42,19 +42,22 @@ module Application
     end
 
     post '/' do
-      uploaded_file = params.dig(:file, :tempfile)
-      uploaded_file_name = params.dig(:file, :filename)
+      uploaded_archive_file = params.dig(:archive_file, :tempfile)&.path
+      uploaded_image_files = (params[:image_files] || {}).map { |_name, uploaded_image_file| uploaded_image_file[:tempfile]&.path }.compact
+      options = (params[:options] || {}).slice(:columns, :class, :prefix)
 
-      raise UnprocessableEntityError.new('No file selected.') unless uploaded_file && uploaded_file_name
+      raise UnprocessableEntityError.new('No file(s) selected.') unless uploaded_archive_file.present? || uploaded_image_files.present?
 
       tmp_directory = Dir.mktmpdir
 
       begin
-        archive_extractor = ArchiveExtractor.new(uploaded_file.path)
-        files = archive_extractor.extract_to(File.join(tmp_directory, 'sprites'))
-        image_files = files.select { |file| Spritesheet::SUPPORTED_IMAGE_FORMATS.include?(File.extname(file).delete('.')) }
+        image_files = if uploaded_archive_file
+                        ArchiveExtractor.new(uploaded_archive_file).extract_to(File.join(tmp_directory, 'sprites'))
+                      else
+                        uploaded_image_files
+                      end.select { |image_file| Spritesheet::SUPPORTED_IMAGE_FORMATS.include?(File.extname(image_file).delete('.')) }
 
-        spritesheet = Spritesheet.new(image_files)
+        spritesheet = Spritesheet.new(image_files, options)
         spritesheet_image_file = spritesheet.save_image(File.join(tmp_directory, 'sprites.png'))
         spritesheet_css_file = spritesheet.save_css(File.join(tmp_directory, 'sprites.css'))
 
@@ -62,8 +65,7 @@ module Application
         archive_file_basename = 'spritesheet.zip'
         archive_file = File.join(tmp_directory, archive_file_basename)
 
-        archive_creator = ArchiveCreator.new(spritesheet_image_file, spritesheet_css_file)
-        archive_creator.save(archive_file)
+        ArchiveCreator.new(spritesheet_image_file, spritesheet_css_file).save(archive_file)
 
         response.headers['content_type'] = 'application/octet-stream'
         attachment(archive_file_basename)

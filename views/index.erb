@@ -1,33 +1,12 @@
-<form action="/" method="POST" enctype="multipart/form-data" id="file-upload-form" role="form">
-  <h1>
-    Sprite Sheet<br>Generator
-  </h1>
-  <p class="lead">
-    Upload a zip file that contains PNG files and get a zip file containing a sprite sheet and a corresponding CSS file.
+<h1>
+  Sprite Sheet<br>Generator
+</h1>
+<p>
+  Select image files <em>or</em> a zip file that contains image files and get a zip file containing a sprite sheet and a corresponding CSS file.
+</p>
+<% if @error.present? %>
+  <p class="error">
+    <%= @error %>
   </p>
-  <% if @error.present? %>
-    <p class="error">
-      <%= @error %>
-    </p>
-  <% end %>
-  <input type="file" name="file" id="file-upload-form-file" class="form-control" required>
-  <div class="panel-group" id="advanced-options">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h4 class="panel-title">
-          <a data-toggle="collapse" data-parent="#advanced-options" href="#advanced-options-panel">
-            Advanced Options
-          </a>
-        </h4>
-      </div>
-      <div id="advanced-options-panel" class="panel-collapse collapse">
-        <div class="panel-body">
-          <input type="text" name="class" id="file-upload-form-prefix" class="form-control" placeholder="CSS Class Name">
-          <input type="text" name="prefix" id="file-upload-form-prefix" class="form-control" placeholder="CSS Class Prefix">
-          <input type="text" name="columns" id="file-upload-form-columns" class="form-control" placeholder="Number of Columns">
-        </div>
-      </div>
-    </div>
-  </div>
-  <button type="submit" id="file-upload-form-submit" class="btn btn-lg btn-primary btn-block">Upload</button>
-</form>
+<% end %>
+<div id="root"></div>
