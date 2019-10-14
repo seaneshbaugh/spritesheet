@@ -2,7 +2,7 @@
   "name": "spritesheet",
   "private": true,
   "scripts": {
-    "build": "NODE_ENV=production /node_modules/webpack/bin/webpack.js -p",
+    "build": "webpack -p",
     "start:dev": "webpack-dev-server --host 0.0.0.0 --hot --inline"
   },
   "dependencies": {
