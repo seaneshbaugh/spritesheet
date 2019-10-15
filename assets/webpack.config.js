@@ -3,7 +3,7 @@ const merge = require("webpack-merge");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const env = process.env.NODE_ENV || "development";
-const production = env == "production";
+const production = env === "production";
 
 const node_modules_dir = "/assets/node_modules";
 
