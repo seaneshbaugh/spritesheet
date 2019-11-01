@@ -44,7 +44,7 @@ module Application
     post '/' do
       uploaded_archive_file = params.dig(:archive_file, :tempfile)&.path
       uploaded_image_files = (params[:image_files] || {}).map { |_name, uploaded_image_file| uploaded_image_file[:tempfile]&.path }.compact
-      options = (params[:options] || {}).slice(:columns, :class, :prefix)
+      options = (params[:options] || {}).slice(:columns, :class, :prefix).delete_if { |_key, value| value.blank? }
 
       raise UnprocessableEntityError.new('No file(s) selected.') unless uploaded_archive_file.present? || uploaded_image_files.present?
 
