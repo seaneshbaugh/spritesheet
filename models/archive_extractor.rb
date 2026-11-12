@@ -44,7 +44,7 @@ class ArchiveExtractor
       zip_file.reject { |file| file.name.start_with?('__MACOSX/') }.map do |file|
         path = File.join(extract_directory, file.name)
 
-        zip_file.extract(file, path)
+        zip_file.extract(file, destination_directory: extract_directory)
 
         path
       end

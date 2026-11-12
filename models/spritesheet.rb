@@ -20,7 +20,10 @@ class Spritesheet
   end
 
   def save_image(image_file_path)
-    MiniMagick::Tool::Montage.new do |montage|
+    MiniMagick.montage do |montage|
+      # The slim image has no default ImageMagick font configured.
+      montage.font 'DejaVu-Sans'
+
       @files.each do |file|
         montage << file
       end
@@ -65,7 +68,7 @@ class Spritesheet
 
     css_file = File.new(css_file_path, 'w')
 
-    css_file.puts ERB.new(File.read(template_file_name), 0, '>').result(binding)
+    css_file.puts ERB.new(File.read(template_file_name), trim_mode: '>').result(binding)
 
     css_file.close
 

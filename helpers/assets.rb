@@ -12,6 +12,4 @@ module Helpers
       end
     end
   end
-
-  Sinatra.helpers Assets
 end

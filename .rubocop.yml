@@ -2,7 +2,7 @@ AllCops:
   Exclude:
     - assets/node_modules/**/*
 
-Metrics/LineLength:
+Layout/LineLength:
   Enabled: false
 
 Style/Documentation:

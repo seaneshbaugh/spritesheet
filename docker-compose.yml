@@ -1,15 +1,12 @@
-version: "3"
-
 services:
   sinatra:
-    build:
-      context: "."
-      dockerfile: "./Dockerfile.sinatra"
+    build: .
     volumes:
-      - ".:/spritesheet"
+      - ".:/app"
+      - "bundle:/usr/local/bundle"
     ports:
       - "3000:3000"
-    command: "bundle exec puma config.ru -C config/puma.rb"
+    init: true
   webpack:
     build:
       context: "."
@@ -22,4 +19,5 @@ services:
     command: "yarn run start:dev"
 
 volumes:
+  bundle:
   node_modules:

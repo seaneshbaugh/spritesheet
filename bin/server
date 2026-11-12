@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -eu
+
+mkdir -p tmp/pids log
+exec bundle exec puma config.ru -C config/puma.rb "$@"

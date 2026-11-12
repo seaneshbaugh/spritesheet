@@ -4,7 +4,7 @@
 <p>
   Select image files <em>or</em> a zip file that contains image files and get a zip file containing a sprite sheet and a corresponding CSS file.
 </p>
-<% if @error.present? %>
+<% if @error && !@error.empty? %>
   <p class="error">
     <%= @error %>
   </p>

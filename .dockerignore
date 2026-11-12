@@ -1,2 +1,9 @@
 .git
-.dockerignore
+.aws
+.agents
+.codex
+.bundle
+.env*
+**/node_modules
+log/*
+tmp/*

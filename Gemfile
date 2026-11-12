@@ -1,17 +1,20 @@
 # frozen_string_literal: true
 
 source 'https://rubygems.org'
-git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+ruby file: '.ruby-version'
 
-ruby '2.6.5'
-
-gem 'activesupport', '6.0.0', require: 'active_support/all'
-gem 'mini_magick', '4.9.5'
-gem 'puma', '4.2.0'
-gem 'rubyzip', '2.0.0', require: 'zip'
-gem 'sinatra', '2.0.7'
-gem 'sinatra-contrib', '2.0.7'
+gem 'mini_magick', '~> 5.4'
+gem 'puma', '~> 8.0'
+gem 'rubyzip', '~> 3.7', require: 'zip'
+gem 'sinatra', '~> 4.2', require: 'sinatra/base'
+gem 'sinatra-contrib', '~> 4.2', require: false
 
 group :development do
-  gem 'rubocop', '0.75.0', require: false
+  gem 'rubocop', '~> 1.92', require: false
+end
+
+group :test do
+  gem 'minitest', '~> 6.1', require: false
+  gem 'rack-test', '~> 2.2', require: false
+  gem 'rake', '~> 13.3', require: false
 end
