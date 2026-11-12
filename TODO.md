@@ -1,7 +1,7 @@
 # Spritesheet modernization plan
 
 Planning baseline: November 11, 2026. This document proposes implementation
-commits for review. Commit 1 has been implemented locally; no deployment changes
+commits for review. Commits 1 and 2 have been implemented locally; no deployment changes
 have been made. Checkboxes track completed work and remaining verification.
 
 ## Agreed direction
@@ -87,7 +87,7 @@ reference; deployment submodules can be stale and must be checked before use.
 
 ### Commit 1 verification
 
-Implemented locally, not committed or deployed. Resolved Ruby 4.0.9, Bundler
+Implemented and verified locally; no deployment was performed. Resolved Ruby 4.0.9, Bundler
 4.0.20, Sinatra/sinatra-contrib 4.2.1, Puma 8.0.2, MiniMagick 5.4.0, rubyzip
 3.7.0, Rack 3.2.8, RuboCop 1.92.2, Minitest 6.1.0, Rack::Test 2.3.0, and
 Rake 13.4.2. The development image uses Debian slim and ImageMagick 7; explicitly
@@ -115,30 +115,49 @@ for commit 2; this is not yet the production-ready modernization.
 
 ## Commit 2 — Define supported inputs and correct generated output
 
-- [ ] Separate request parsing/validation from orchestration sufficiently to test
+- [x] Separate request parsing/validation from orchestration sufficiently to test
   it without introducing a large framework or unnecessary abstractions.
-- [ ] Define unambiguous image-versus-archive input behavior. Reject conflicting
+- [x] Define unambiguous image-versus-archive input behavior. Reject conflicting
   inputs and malformed parameter shapes with a useful validation response.
-- [ ] Validate actual decoded image formats as well as filename extensions;
+- [x] Validate actual decoded image formats as well as filename extensions;
   normalize extension case. Support PNG and single-frame GIF only for this phase.
-- [ ] Reject animated GIFs and unequal image dimensions with clear messages for
+- [x] Reject animated GIFs and unequal image dimensions with clear messages for
   now. Do not silently discard frames or promise mixed-size layout correctness.
   Document these as provisional baseline restrictions, with future support below.
-- [ ] Reject empty uploads, empty ZIPs, and archives containing no usable images.
+- [x] Reject empty uploads, empty ZIPs, and archives containing no usable images.
   Define handling of unrelated archive entries: ignore harmless non-image files
   and __MACOSX metadata; report corrupt files claiming to be supported images.
-- [ ] Preserve direct-upload order and archive entry order for now; document the
+- [x] Preserve direct-upload order and archive entry order for now; document the
   numbering rule rather than adding a new sorting feature.
-- [ ] Validate columns and CSS class/prefix options, retaining defaults of five
+- [x] Validate columns and CSS class/prefix options, retaining defaults of five
   columns and sprite. Reject malformed values and identifiers that become empty
   or invalid rather than emitting unusable CSS.
-- [ ] Keep spritesheet.zip as the download name and sprites.png/sprites.css as
+- [x] Keep spritesheet.zip as the download name and sprites.png/sprites.css as
   members. Correct the CSS image URL to sprites.png and use application/zip.
-- [ ] Escape displayed errors and user-controlled strings in ERB explicitly.
+- [x] Escape displayed errors and user-controlled strings in ERB explicitly.
   Return deliberate 422 statuses for invalid content and avoid exposing exceptions.
-- [ ] Add regression tests for output filenames, transparency, dimensions,
+- [x] Add regression tests for output filenames, transparency, dimensions,
   sprite numbering, columns, CSS coordinates, PNG/static GIF, and invalid inputs.
   Assert pixels/geometry where useful rather than merely stubbing ImageMagick.
+
+### Commit 2 verification
+
+Implemented request parsing in UploadRequest and shared 422 validation errors.
+ImageMagick identify checks format, dimensions, and frame count without making
+MiniMagick temporary copies; processing errors receive readable validation
+messages. CSS generation reuses validated dimensions. Nested ZIP directories
+are supported and non-image entries are excluded from image processing.
+Basic entry-type/path checks accompany nested extraction; comprehensive archive
+bounds and extraction safeguards remain in commit 3.
+
+Verified with `docker compose run --rm --no-deps sinatra bundle exec rake test`:
+20 tests, 183 assertions, zero failures/errors. Coverage includes actual sprite
+pixels/order and CSS coordinates, transparency, PNG/static GIF, uppercase
+extensions, malformed/conflicting uploads, invalid options, blank defaults,
+invalid/empty/encrypted ZIPs, nested folders and metadata, animation/mixed-size
+rejection, correct ZIP/CSS filenames and content type, and escaped 422 errors.
+README documents the supported input/output contract and ordering. Dockerized
+RuboCop lint passed for all eight changed Ruby files; `git diff --check` passed.
 
 ## Commit 3 — Bound upload processing and guarantee temporary-file cleanup
 

@@ -6,7 +6,7 @@
 </p>
 <% if @error && !@error.empty? %>
   <p class="error">
-    <%= @error %>
+    <%= Rack::Utils.escape_html(@error) %>
   </p>
 <% end %>
 <div id="root"></div>

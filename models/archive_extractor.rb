@@ -1,10 +1,14 @@
 # frozen_string_literal: true
 
+require_relative 'validation_error'
+
 class ArchiveExtractor
   SUPPORTED_FORMATS = %w[zip].freeze
 
   class UnsupportedArchiveFormatError < StandardError
     def initialize(archive_format)
+      super()
+
       @archive_format = archive_format
     end
 
@@ -27,6 +31,8 @@ class ArchiveExtractor
     FileUtils.mkdir_p(extract_directory)
 
     send(extract_method, extract_directory)
+  rescue Zip::Error, Zlib::Error, EOFError, Errno::EEXIST, Errno::ENOTDIR, Errno::EISDIR
+    raise ValidationError, 'The ZIP archive is invalid or could not be read.'
   end
 
   def archive_format
@@ -36,17 +42,21 @@ class ArchiveExtractor
   private
 
   def extract_method
-    @extract_method ||= "extract_#{archive_format}".to_sym
+    @extract_method ||= :"extract_#{archive_format}"
   end
 
   def extract_zip(extract_directory)
     Zip::File.open(@archive_file_path) do |zip_file|
-      zip_file.reject { |file| file.name.start_with?('__MACOSX/') }.map do |file|
-        path = File.join(extract_directory, file.name)
+      zip_file.reject { |file| file.directory? || file.name.start_with?('__MACOSX/') }.map do |file|
+        raise ValidationError, 'Encrypted ZIP archives are not supported.' if file.encrypted?
 
-        zip_file.extract(file, destination_directory: extract_directory)
+        unless file.file? && !file.name.start_with?('/') && !file.name.split('/').include?('..')
+          raise ValidationError, 'The ZIP archive contains an unsupported entry.'
+        end
 
-        path
+        file.extract(destination_directory: extract_directory, create_parent_directories: true)
+
+        File.join(extract_directory, file.name)
       end
     end
   end

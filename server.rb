@@ -4,16 +4,11 @@ require_relative 'helpers/assets'
 require_relative 'models/archive_creator'
 require_relative 'models/archive_extractor'
 require_relative 'models/spritesheet'
+require_relative 'models/upload_request'
 
 module Application
   class Main < Sinatra::Base
     include Helpers::Assets
-
-    class UnprocessableEntityError < StandardError
-      def http_status
-        422
-      end
-    end
 
     configure :development do
       register Sinatra::Reloader
@@ -42,40 +37,37 @@ module Application
     end
 
     post '/' do
-      uploaded_archive_file = params.dig(:archive_file, :tempfile)&.path
-      uploaded_image_files = (params[:image_files] || {}).map { |_name, uploaded_image_file| uploaded_image_file[:tempfile]&.path }.compact
-      options = (params[:options] || {}).slice(:columns, :class, :prefix).delete_if { |_key, value| value.nil? || value.strip.empty? }
-
-      raise UnprocessableEntityError.new('No file(s) selected.') unless uploaded_archive_file || !uploaded_image_files.empty?
+      upload = UploadRequest.new(params)
 
       tmp_directory = Dir.mktmpdir
 
       begin
-        image_files = if uploaded_archive_file
-                        ArchiveExtractor.new(uploaded_archive_file).extract_to(File.join(tmp_directory, 'sprites'))
+        image_files = if upload.archive
+                        ArchiveExtractor.new(upload.archive[:path]).extract_to(File.join(tmp_directory, 'sprites'))
                       else
-                        uploaded_image_files
-                      end.select { |image_file| Spritesheet::SUPPORTED_IMAGE_FORMATS.include?(File.extname(image_file).delete('.')) }
+                        upload.images.map { |image| image[:path] }
+                      end.select { |image_file| Spritesheet::SUPPORTED_IMAGE_FORMATS.include?(File.extname(image_file).delete_prefix('.').downcase) }
 
-        spritesheet = Spritesheet.new(image_files, options)
+        spritesheet = Spritesheet.new(image_files, upload.options)
         spritesheet_image_file = spritesheet.save_image(File.join(tmp_directory, 'sprites.png'))
         spritesheet_css_file = spritesheet.save_css(File.join(tmp_directory, 'sprites.css'))
 
-        # TODO: Use param to determine extension.
         archive_file_basename = 'spritesheet.zip'
         archive_file = File.join(tmp_directory, archive_file_basename)
 
         ArchiveCreator.new(spritesheet_image_file, spritesheet_css_file).save(archive_file)
 
-        content_type 'application/octet-stream'
+        content_type 'application/zip'
         attachment(archive_file_basename)
-        response.write(File.read(archive_file))
+        response.write(File.binread(archive_file))
       ensure
         FileUtils.remove_entry_secure(tmp_directory)
       end
     end
 
-    error UnprocessableEntityError, ArchiveExtractor::UnsupportedArchiveFormatError, ArchiveCreator::UnsupportedArchiveFormatError do
+    error ValidationError, ArchiveExtractor::UnsupportedArchiveFormatError, ArchiveCreator::UnsupportedArchiveFormatError do
+      status 422
+
       @error = env['sinatra.error'].message
 
       erb :index

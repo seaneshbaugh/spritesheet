@@ -30,4 +30,10 @@ class Minitest::Test
 
     path
   end
+
+  def rgb_pixel(image, x, y)
+    format = %w[r g b].map { |channel| "%[fx:255*p{#{x},#{y}}.#{channel}]" }.join(',')
+
+    image[format].split(',').map { |value| value.to_f.round }
+  end
 end
