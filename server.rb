@@ -5,8 +5,14 @@ require_relative 'models/archive_creator'
 require_relative 'models/archive_extractor'
 require_relative 'models/spritesheet'
 require_relative 'models/upload_request'
+require_relative 'models/download_body'
+require_relative 'middleware/request_workspace'
 
 module Application
+  def self.app(main = Main)
+    RequestWorkspace.new(main)
+  end
+
   class Main < Sinatra::Base
     include Helpers::Assets
 
@@ -20,12 +26,6 @@ module Application
 
     configure :development, :production do
       enable :logging
-
-      file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
-
-      file.sync = true
-
-      use Rack::CommonLogger, file
     end
 
     register Sinatra::ConfigFile
@@ -38,31 +38,22 @@ module Application
 
     post '/' do
       upload = UploadRequest.new(params)
+      tmp_directory = env.fetch('spritesheet.workspace')
+      image_files = if upload.archive
+                      ArchiveExtractor.new(upload.archive[:path]).extract_to(File.join(tmp_directory, 'sprites'))
+                    else
+                      upload.images.map { |image| image[:path] }
+                    end.select { |file| Spritesheet::SUPPORTED_IMAGE_FORMATS.include?(File.extname(file).delete_prefix('.').downcase) }
+      spritesheet = Spritesheet.new(image_files, upload.options)
+      image_file = spritesheet.save_image(File.join(tmp_directory, 'sprites.png'))
+      css_file = spritesheet.save_css(File.join(tmp_directory, 'sprites.css'))
+      archive_file = File.join(tmp_directory, 'spritesheet.zip')
+      ArchiveCreator.new(image_file, css_file).save(archive_file)
 
-      tmp_directory = Dir.mktmpdir
-
-      begin
-        image_files = if upload.archive
-                        ArchiveExtractor.new(upload.archive[:path]).extract_to(File.join(tmp_directory, 'sprites'))
-                      else
-                        upload.images.map { |image| image[:path] }
-                      end.select { |image_file| Spritesheet::SUPPORTED_IMAGE_FORMATS.include?(File.extname(image_file).delete_prefix('.').downcase) }
-
-        spritesheet = Spritesheet.new(image_files, upload.options)
-        spritesheet_image_file = spritesheet.save_image(File.join(tmp_directory, 'sprites.png'))
-        spritesheet_css_file = spritesheet.save_css(File.join(tmp_directory, 'sprites.css'))
-
-        archive_file_basename = 'spritesheet.zip'
-        archive_file = File.join(tmp_directory, archive_file_basename)
-
-        ArchiveCreator.new(spritesheet_image_file, spritesheet_css_file).save(archive_file)
-
-        content_type 'application/zip'
-        attachment(archive_file_basename)
-        response.write(File.binread(archive_file))
-      ensure
-        FileUtils.remove_entry_secure(tmp_directory)
-      end
+      content_type 'application/zip'
+      attachment('spritesheet.zip')
+      headers 'content-length' => File.size(archive_file).to_s
+      body DownloadBody.new(archive_file)
     end
 
     error ValidationError, ArchiveExtractor::UnsupportedArchiveFormatError, ArchiveCreator::UnsupportedArchiveFormatError do

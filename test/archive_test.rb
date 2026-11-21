@@ -21,7 +21,7 @@ class ArchiveTest < Minitest::Test
 
     extracted = ArchiveExtractor.new(archive).extract_to(File.join(@directory, 'extracted'))
 
-    assert_equal %w[red.png sprites.css], extracted.map { |file| File.basename(file) }
+    assert_equal %w[red.png sprites.css], extracted.map { |file| File.basename(file) }.to_a
     assert_equal File.binread(image), File.binread(extracted.first)
   end
 end

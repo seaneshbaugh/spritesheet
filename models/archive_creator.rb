@@ -5,6 +5,8 @@ class ArchiveCreator
 
   class UnsupportedArchiveFormatError < StandardError
     def initialize(requested_format)
+      super()
+
       @requested_format = requested_format
     end
 
@@ -27,7 +29,7 @@ class ArchiveCreator
 
   def save(archive_file_path)
     archive_format = File.extname(archive_file_path).delete('.').downcase
-    save_method = "save_#{archive_format}".to_sym
+    save_method = :"save_#{archive_format}"
 
     raise UnsupportedArchiveFormatError.new(archive_format) unless respond_to?(save_method, true)
 
@@ -40,7 +42,8 @@ class ArchiveCreator
     Zip::OutputStream.open(zip_file_path) do |zip_file|
       @files.each do |file|
         zip_file.put_next_entry(File.basename(file))
-        zip_file.print(IO.read(file))
+
+        IO.copy_stream(file, zip_file)
       end
     end
   end

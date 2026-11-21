@@ -2,4 +2,4 @@
 
 require_relative 'config/boot'
 
-run Application::Main
+run Application.app

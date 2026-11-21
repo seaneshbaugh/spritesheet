@@ -59,5 +59,80 @@ letters, digits, underscores, and hyphens, but cannot start with a digit or cons
 of a lone hyphen. Names are validated rather than silently sanitized.
 
 Invalid content returns HTTP 422 with a readable message. Upload-size and resource
-limits, including the planned 32 MiB image allowance, belong to the next TODO
-section and are not enforced by this step yet.
+limits are described below.
+
+## Upload and processing limits
+
+Limits are centralized in `config/processing_limits.rb` and enforced on the server.
+MiB means 1,048,576 bytes; multipart overhead is separate from image data.
+
+| Limit | Default |
+| --- | --- |
+| Total direct image bytes, or decompressed PNG/GIF bytes in a ZIP | 32 MiB |
+| Entire HTTP request, including multipart/ZIP overhead | 40 MiB |
+| Total decompressed ZIP content, including ignored files/metadata | 40 MiB |
+| Images per job | 1,024 |
+| ZIP entries, including directories and metadata | 2,048 |
+| Pixels in each image and in the entire output canvas | 16 million each |
+| Width/height of an image or the output canvas | 16,384 pixels |
+| ImageMagick command timeout | 30 seconds per command |
+
+ImageMagick also has policy limits of 128 MiB pixel-cache memory, 256 MiB mapped
+cache, 256 MiB disk cache, and one processing thread per command. These are
+per-command guardrails, not a combined container memory/storage budget or a total
+request deadline. They can reject an expensive job below the 32 MiB upload limit.
+Production concurrency, container memory, and bounded tmpfs sizing remain in
+section 7. Compressed image bytes alone cannot predict decoded memory use.
+
+The Docker image installs `config/imagemagick-policy.xml`. Only PNG/GIF image
+codecs and the internal XC/INFO fixture/diagnostic coders are enabled; delegates
+and filters are disabled. Ghostscript is not installed. Rebuild the image after
+changing the policy. Changes to numeric limits must be reconciled with that
+policy and the production reverse proxy when it is configured.
+
+Puma rejects declared or chunked HTTP bodies over 40 MiB before Rack parses them.
+Puma is the required HTTP server in development and production; the application
+does not spool or recount the HTTP body. A replacement server would need equivalent
+request-size enforcement. HTTP request overflow returns 413; image/extraction
+and processing validation errors return 422. ZIP extraction counts actual bytes
+as they are read instead of trusting the declared uncompressed sizes. Unsafe
+paths, symlinks, duplicate/conflicting destinations, paths longer than 1,024
+bytes, and nesting deeper than 16 components are rejected.
+
+## Temporary storage and crash recovery
+
+Always start the server through `bin/server` (the image's default command). It
+creates a private, owned directory at `/tmp/spritesheet-runtime`, takes an
+exclusive lifetime lock, and removes abandoned contents **before** starting Puma.
+`SPRITESHEET_TMP_ROOT` may select another private `spritesheet-*` directory with
+an existing real parent directory. Do not share it between instances or mount it
+as shared storage. A second server using the same root fails before cleanup.
+Unsafe storage or cleanup failures prevent startup rather than starting with
+uncertain disk state. Application reloads and worker starts do not run the sweep.
+
+Only `POST /` creates a request workspace containing multipart uploads, extracted
+files, generated output, and ImageMagick scratch files. GETs, static assets, and
+other routes bypass workspace handling. Rack's
+multipart factory registers files immediately, so parser failures cannot leave
+untracked handles. Workspaces are removed on errors or when the response body is
+closed, including aborted downloads. ZIP creation and downloads use bounded
+chunks instead of reading the entire generated files into Ruby memory.
+
+Puma's pre-Rack upload buffers also use the private root via TMPDIR. On Linux it
+unlinks those files immediately and closes them when the request finishes or the
+client disconnects. Disk space is released when those handles close, including
+when the process dies. A subsequent boot removes named leftovers from a killed
+job. The `.lock` and running `puma.pid` files are control files, not abandoned
+uploads; they may remain while the server is idle. There is no broad `/tmp` sweep.
+A periodic cleanup job remains deferred.
+
+Puma's upload buffers, multipart copies, expanded content, ImageMagick caches, output
+PNG, and output ZIP can coexist. The 32 MiB input limit is **not** a 32 MiB limit
+on total temporary storage; the production tmpfs budget must include those copies
+and concurrent jobs. Logs now go to container stdout/stderr rather than growing
+application log files. Docker log rotation will be configured with deployment.
+
+The default test command includes real Puma tests using private Unix sockets
+inside the test container. It checks upload/parse failures, client disconnects,
+declared/chunked oversize rejection, startup locking, and kill/restart recovery.
+It does not bind host ports or require host dependencies.

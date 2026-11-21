@@ -15,6 +15,8 @@ RUN apt-get update && \
 COPY Gemfile Gemfile.lock .ruby-version ./
 RUN bundle install
 
+COPY config/imagemagick-policy.xml /etc/ImageMagick-7/policy.xml
+
 COPY . .
 
 EXPOSE 3000

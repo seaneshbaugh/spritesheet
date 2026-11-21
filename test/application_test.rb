@@ -6,7 +6,7 @@ class ApplicationTest < Minitest::Test
   include Rack::Test::Methods
 
   def app
-    Application::Main
+    Application.app
   end
 
   def test_home_page

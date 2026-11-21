@@ -6,7 +6,7 @@ class InputValidationTest < Minitest::Test
   include Rack::Test::Methods
 
   def app
-    @error_app || Application::Main
+    Application.app(@error_app || Application::Main)
   end
 
   def uploaded(path)

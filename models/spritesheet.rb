@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'validation_error'
+require_relative 'image_tools'
 
 class Spritesheet
   DEFAULT_COLUMNS = 5
@@ -9,11 +10,18 @@ class Spritesheet
 
   attr_reader :files
 
-  def initialize(files, options = {})
+  def initialize(files, options = {}, limits: ProcessingLimits.current, **keyword_options)
+    options = options.merge(keyword_options)
+    @limits = limits
+
     raise ValidationError, 'No supported images were selected.' if files.empty?
 
     unless (options.keys - %i[columns class prefix]).empty?
       raise ValidationError, 'Invalid spritesheet options.'
+    end
+
+    if files.length > limits.image_count || files.sum { |file| File.size(file) } > limits.image_bytes
+      raise ValidationError, 'Images exceed the 32 MiB total or image-count limit.'
     end
 
     columns = options.fetch(:columns, DEFAULT_COLUMNS).to_s
@@ -31,10 +39,18 @@ class Spritesheet
     unless @dimensions.uniq.length == 1
       raise ValidationError, 'All images must have the same dimensions for now.'
     end
+
+    width, height = @dimensions.first
+    canvas_width = width * @columns
+    canvas_height = height * ((files.length + @columns - 1) / @columns)
+
+    if canvas_width > limits.dimension || canvas_height > limits.dimension || canvas_width * canvas_height > limits.canvas_pixels
+      raise ValidationError, 'The generated spritesheet exceeds the canvas size limit.'
+    end
   end
 
   def save_image(image_file_path)
-    MiniMagick.montage do |montage|
+    ImageTools.run(:montage, directory: File.dirname(image_file_path), limits: @limits) do |montage|
       # The slim image has no default ImageMagick font configured.
       montage.font 'DejaVu-Sans'
 
@@ -104,7 +120,8 @@ class Spritesheet
       raise ValidationError, 'Only PNG and static GIF images are supported.'
     end
 
-    frames = MiniMagick.identify do |command|
+    frames = ImageTools.run(:identify, directory: File.dirname(file), limits: @limits) do |command|
+      command.ping
       command.format "%m %w %h\n"
       command << file
     end.lines.map(&:split)
@@ -115,7 +132,13 @@ class Spritesheet
 
     raise ValidationError, 'Animated or multi-frame images are not supported yet.' unless frames.length == 1
 
-    frames.first.drop(1).map(&:to_i)
+    dimensions = frames.first.drop(1).map(&:to_i)
+
+    if dimensions.any? { |value| value > @limits.dimension } || dimensions.inject(:*) > @limits.image_pixels
+      raise ValidationError, 'An image exceeds the pixel or dimension limit.'
+    end
+
+    dimensions
   rescue MiniMagick::Error
     raise ValidationError, 'Invalid image data. Select valid PNG or static GIF images.'
   end

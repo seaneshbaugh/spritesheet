@@ -6,7 +6,7 @@ require_relative 'spritesheet'
 class UploadRequest
   attr_reader :archive, :images, :options
 
-  def initialize(params)
+  def initialize(params, limits: ProcessingLimits.current)
     @archive = upload(params[:archive_file])
     collection = params[:image_files] || {}
 
@@ -21,6 +21,10 @@ class UploadRequest
       raise ValidationError, 'Select a ZIP archive.' unless extension(archive) == 'zip'
     elsif images.any? { |image| !Spritesheet::SUPPORTED_IMAGE_FORMATS.include?(extension(image)) }
       raise ValidationError, 'Only PNG and static GIF images are supported.'
+    end
+
+    if images.length > limits.image_count || images.sum { |image| File.size(image[:path]) } > limits.image_bytes
+      raise ValidationError, 'Image uploads exceed the 32 MiB total or image-count limit.'
     end
 
     values = params[:options] || {}
@@ -49,6 +53,8 @@ class UploadRequest
     unless filename.is_a?(String) && tempfile.respond_to?(:path) && File.file?(tempfile.path)
       raise ValidationError, 'Invalid file upload.'
     end
+
+    raise ValidationError, 'Invalid upload filename.' unless filename.valid_encoding? && !filename.include?("\0")
 
     return if filename.empty?
 

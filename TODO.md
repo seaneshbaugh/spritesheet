@@ -1,7 +1,7 @@
 # Spritesheet modernization plan
 
 Planning baseline: November 11, 2026. This document proposes implementation
-commits for review. Commits 1 and 2 have been implemented locally; no deployment changes
+commits for review. Sections 1–3 have been implemented locally; no deployment changes
 have been made. Checkboxes track completed work and remaining verification.
 
 ## Agreed direction
@@ -161,44 +161,107 @@ RuboCop lint passed for all eight changed Ruby files; `git diff --check` passed.
 
 ## Commit 3 — Bound upload processing and guarantee temporary-file cleanup
 
-- [ ] Centralize limits with documented defaults. Enforce the 32 MiB total for
+- [x] Centralize limits with documented defaults. Enforce the 32 MiB total for
   direct images and the actual decompressed image bytes from ZIP input. Browser
   validation is advisory; server checks are authoritative.
-- [ ] Use a separate proposed 40 MiB total HTTP-body ceiling to allow multipart
-  and archive overhead. Reject oversized bodies early, including requests without
-  a trustworthy Content-Length. Do not use Content-Length as the sole check.
-- [ ] Bound actual total archive extraction, including irrelevant entries, and
+- [x] Enforce a 40 MiB total HTTP-body ceiling in Puma to allow multipart and
+  archive overhead. Reject oversized declared-size and chunked requests before
+  Rack parsing. Puma is the required server; do not duplicate body buffering in
+  application middleware.
+- [x] Bound actual total archive extraction, including irrelevant entries, and
   reject excessive entry counts. Choose and document operational guardrails in
   implementation; they must prevent tiny-file/directory floods without treating
   count as the user's primary product limit.
-- [ ] Validate ZIP paths before extraction: reject traversal, absolute paths,
+- [x] Validate ZIP paths before extraction: reject traversal, absolute paths,
   symlinks, collisions, and entries escaping the request directory. Handle nested
   directories and corrupt/encrypted archives deliberately. Count actual bytes
   while extracting rather than trusting archive size metadata.
-- [ ] Set ImageMagick memory, map, disk, thread, and time bounds and a command
+- [x] Set ImageMagick memory, map, disk, thread, and time bounds and a command
   timeout. Compressed byte size alone does not bound decoded image memory. Set
   generous pixel/canvas guardrails and validate combined output dimensions before
   montage; document them as operational limits, not new feature requirements.
-- [ ] Keep only required PNG/GIF codecs enabled where practical. Remove Ghostscript
+- [x] Keep only required PNG/GIF codecs enabled where practical. Remove Ghostscript
   and its fonts unless a demonstrated supported use requires them.
-- [ ] Own extraction files, generated output, and ImageMagick scratch files under
+- [x] Own extraction files, generated output, and ImageMagick scratch files under
   an identifiable per-request temporary directory. Ensure MiniMagick-created
   copies and scratch files are included in cleanup, not just the final outputs.
-- [ ] Audit Rack multipart tempfile ownership and lifecycle, including parser
+- [x] Audit Rack multipart tempfile ownership and lifecycle, including parser
   failures, and ensure uploads are closed/unlinked through the supported cleanup
   mechanism. Verify behavior with a real server, not only mocked requests.
-- [ ] Clean up on success, validation failures, invalid images/ZIPs, failed
+- [x] Clean up on success, validation failures, invalid images/ZIPs, failed
   ImageMagick commands, timeouts, and interrupted response delivery. If using a
   streaming/file response, tie cleanup to response-body closure so files remain
   available until consumption ends. Avoid an unbounded in-memory ZIP copy.
-- [ ] Log to stdout/stderr instead of accumulating application log files. Avoid
+- [x] Log to stdout/stderr instead of accumulating application log files. Avoid
   logging upload bodies or unnecessary client filenames.
-- [ ] Add bounded tests proving actual byte enforcement, hostile ZIP rejection,
+- [x] Add bounded tests proving actual byte enforcement, hostile ZIP rejection,
   cleanup after success/failure, and repeated requests without accumulating files.
   Include the exact limit boundary and an over-limit case without enormous fixtures.
-- [ ] Document that ensure blocks cannot clean up after SIGKILL or host failure.
-  Production ephemeral storage in commit 7 limits persistence; an age-based cron
-  remains a deferred additional measure rather than a prerequisite for cleanup.
+- [x] Add boot-time cleanup of all contents of the service's dedicated temporary
+  root, covering multipart uploads, request directories, and ImageMagick scratch
+  files left after SIGKILL or host failure. Run once before Puma starts accepting
+  requests, not on application reloads or individual worker starts. Use private
+  per-instance storage so another running instance's files cannot be removed;
+  never sweep shared /tmp or follow symlinks outside the owned root. Fail startup
+  clearly if cleanup cannot complete.
+- [x] Test startup with seeded abandoned files and verify the temporary root is
+  empty before serving requests, unrelated files remain untouched, and cleanup
+  failures prevent startup. Include a kill/restart recovery check.
+- [x] Document that ensure blocks handle ordinary request cleanup, while startup
+  cleanup handles crash leftovers on restart. Production ephemeral storage in
+  commit 7 further limits persistence; an age-based cron remains deferred.
+
+### Commit 3 verification (November 12, 2026)
+
+Implemented a private request-workspace middleware for POST / with an immediately
+registered Rack multipart tempfile factory. Other methods/routes bypass it; the
+original request-body stream is passed through without copying or reading it.
+ZIP output creation uses IO.copy_stream; HTTP delivery uses 64 KiB chunks. Response
+closure owns workspace cleanup. Puma buffers use the private TMPDIR and enforce
+40 MiB for both declared-size and chunked uploads before Rack receives them.
+Application logs use container stdout/stderr.
+
+Limits are centralized in config/processing_limits.rb: 32 MiB of image bytes,
+40 MiB of total HTTP input and expanded archive content, 1,024 images, 2,048 ZIP
+entries, 16 million pixels per image/output canvas, and 16,384 pixels per side.
+ZIP names/types/collisions are checked before extraction; actual bytes are counted
+while streaming, including ignored metadata. ImageMagick has an installed codec
+and resource policy, per-command timeouts, and request-scoped scratch paths.
+
+bin/server now locks and sweeps the dedicated runtime root before execing Puma.
+The lifetime lock prevents another launcher from clearing an active server's
+files. Cleanup never follows a symlink outside the owned root. Reloading the
+application does not sweep; unsafe storage or cleanup errors prevent startup.
+The lock and Puma PID are control files rather than abandoned upload data.
+
+Verification:
+
+- Docker image builds successfully with the ImageMagick policy installed.
+- Dockerized Minitest after the November 16 simplification: 43 tests, 326
+  assertions, no failures/errors/skips.
+- The original section-three image also passed its full suite without source
+  bind mounts.
+- Real Puma tests verify successful downloads, malformed multipart cleanup,
+  interrupted uploads, declared/chunked 413 responses, SIGKILL/restart recovery,
+  preserved unrelated files, exclusive startup locking, and failed startup when
+  cleanup cannot proceed. Tests also cover response-close cleanup on interrupted
+  downloads, real ImageMagick errors/timeouts, sparse 32 MiB boundary checks,
+  actual/forged ZIP expansion sizes, hostile paths/collisions/symlinks, pixel
+  bounds, and the installed native codec restrictions.
+- Ruby lint passes for 23 files; git diff --check passes. The previously noted
+  upstream sinatra/config_file verbose warning remains unchanged.
+
+November 16 refinement: restrict workspace creation to POST / and rely exclusively
+on Puma for the HTTP-body ceiling. Removed application-level body spooling and
+its duplicate limit checks. Middleware tests now verify bypassed requests create
+no directories and upload streams/lengths pass through unchanged. Real Puma
+declared-size and chunked overflow tests continue to pass.
+
+README documents the operational limits and temporary-file ownership. Per-command
+resource caps are not a combined per-container budget or a total request deadline;
+production concurrency, tmpfs sizing, non-root image packaging, and Docker log
+rotation remain in section 7 and deployment integration. No cron job or deployment
+was added, and no Git commit was created for this section.
 
 ## Commit 4 — Replace React with server-rendered ERB and Stimulus
 
@@ -277,6 +340,10 @@ RuboCop lint passed for all eight changed Ruby files; `git diff --check` passed.
   tmpfs for uploads and scratch files, with memory/concurrency settings sized to
   the droplet alongside the Rails apps. Verify that the chosen size accommodates
   a valid 32 MiB job, expanded pixels, output ZIP, and concurrent requests.
+- [ ] Wire the boot cleanup from commit 3 into the production entrypoint before
+  starting Puma. Ensure uploads and ImageMagick scratch files use the same private
+  temporary root, and verify crash/restart cleanup under the unprivileged runtime
+  user, including when the container writable filesystem survives a restart.
 - [ ] Limit processing concurrency conservatively; reconcile Puma thread counts,
   ImageMagick limits, and container memory so multiple uploads cannot exhaust the
   host. Measure a representative large job before finalizing numeric defaults.

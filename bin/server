@@ -1,5 +1,15 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-mkdir -p tmp/pids log
-exec bundle exec puma config.ru -C config/puma.rb "$@"
+require_relative '../config/temporary_storage'
+
+begin
+  lock = TemporaryStorage.clean_on_boot!
+
+  # Keep the startup lock for the lifetime of Puma, including worker processes.
+  exec('bundle', 'exec', 'puma', 'config.ru', '-C', 'config/puma.rb', *ARGV, lock.fileno => lock)
+rescue StandardError => error
+  warn "Spritesheet startup failed: #{error.message}"
+
+  exit 1
+end

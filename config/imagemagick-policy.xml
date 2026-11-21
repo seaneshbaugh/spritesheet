@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policymap>
+  <policy domain="resource" name="memory" value="128MiB"/>
+  <policy domain="resource" name="map" value="256MiB"/>
+  <policy domain="resource" name="disk" value="256MiB"/>
+  <policy domain="resource" name="thread" value="1"/>
+  <policy domain="resource" name="time" value="30"/>
+  <policy domain="resource" name="width" value="16384"/>
+  <policy domain="resource" name="height" value="16384"/>
+  <policy domain="resource" name="list-length" value="1024"/>
+  <policy domain="delegate" rights="none" pattern="*"/>
+  <policy domain="filter" rights="none" pattern="*"/>
+  <policy domain="path" rights="none" pattern="@*"/>
+  <policy domain="coder" rights="none" pattern="*"/>
+  <policy domain="coder" rights="read|write" pattern="{PNG,PNG8,PNG24,PNG32,PNG48,PNG64,GIF}"/>
+  <!-- XC generates fixture canvases and INFO provides diagnostic pixel output.
+       Neither is an accepted upload format. Neither invokes an external delegate. -->
+  <policy domain="coder" rights="read|write" pattern="{XC,INFO}"/>
+</policymap>
