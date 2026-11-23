@@ -1,12 +1,54 @@
-<h1>
-  Sprite Sheet<br>Generator
-</h1>
-<p>
-  Select image files <em>or</em> a zip file that contains image files and get a zip file containing a sprite sheet and a corresponding CSS file.
-</p>
-<% if @error && !@error.empty? %>
-  <p class="error">
-    <%= Rack::Utils.escape_html(@error) %>
-  </p>
-<% end %>
-<div id="root"></div>
+<header class="mb-7">
+  <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Sprite Sheet Generator</h1>
+  <p class="mt-3 max-w-xl text-base leading-relaxed text-slate-700">Choose your images, get a sprite sheet with matching CSS. Everything is returned in a ZIP download.</p>
+</header>
+<section class="rounded-2xl border border-white bg-white p-5 shadow-lg sm:p-8" aria-label="Generate a sprite sheet">
+  <% if @error %>
+    <div id="server-error" class="mb-5 rounded-lg border border-red-300 bg-red-50 p-4 text-red-900" role="alert" tabindex="-1">
+      <p class="font-semibold"><%= h(@error) %></p>
+      <p class="mt-1 text-sm">Please select your files again. Your options have been kept.</p>
+    </div>
+  <% end %>
+  <form action="/" method="post" enctype="multipart/form-data" data-controller="upload" data-action="submit->upload#validate"
+    data-upload-max-bytes-value="<%= ProcessingLimits.current.image_bytes %>" data-upload-max-request-bytes-value="<%= ProcessingLimits.current.request_bytes %>">
+    <fieldset class="mb-5">
+      <legend class="mb-2 text-sm font-semibold">Upload</legend>
+      <div class="flex flex-wrap gap-5">
+        <label class="flex items-center gap-2"><input type="radio" name="input_mode" value="images" <%= 'checked' unless archive_mode? %> data-action="upload#switchMode"> Images</label>
+        <label class="flex items-center gap-2"><input type="radio" name="input_mode" value="archive" <%= 'checked' if archive_mode? %> data-action="upload#switchMode"> ZIP archive</label>
+      </div>
+    </fieldset>
+    <p class="mb-5 text-sm leading-relaxed text-slate-600">PNG or static GIF only, with equal image dimensions. Maximum <strong>32 MiB of image data</strong> in total, including images inside a ZIP. Images are numbered in upload or ZIP entry order.</p>
+    <noscript><p class="mb-4 rounded-lg bg-sky-50 p-3 text-sm">Select files in only one of the two sections below. You can select several images at once.</p></noscript>
+    <fieldset data-upload-target="images">
+      <legend class="sr-only">Individual images</legend>
+      <div class="rounded-lg border border-slate-200 bg-slate-50 p-4" data-action="dragover->upload#allowDrop drop->upload#appendDroppedFiles">
+        <label class="mb-2 block text-sm font-semibold" for="image-files">Image files</label>
+        <input id="image-files" class="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:font-semibold file:text-sky-900"
+          type="file" name="image_files[]" accept=".png,.gif,image/png,image/gif" multiple aria-describedby="image-selection-help"
+          data-upload-target="imageInput" data-action="change->upload#imagesChanged">
+        <p id="image-selection-help" class="mt-2 text-xs text-slate-600" data-javascript-control hidden>Browse to replace the selection, or drop more images here to append them.</p>
+        <div class="mt-3 flex flex-wrap gap-3" data-upload-target="previews" aria-live="polite"></div>
+        <button type="button" class="secondary-button mt-3" data-upload-target="clearButton" data-javascript-control hidden disabled data-action="upload#clearImages">Clear image selection</button>
+      </div>
+    </fieldset>
+    <fieldset class="rounded-lg border border-slate-200 bg-slate-50 p-4" data-upload-target="archive">
+      <legend class="sr-only">ZIP archive</legend>
+      <label for="archive-file" class="mb-2 block text-sm font-semibold">ZIP file</label>
+      <input id="archive-file" class="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:font-semibold file:text-sky-900" type="file" name="archive_file" accept=".zip,application/zip" data-action="change->upload#archiveChanged">
+      <p class="mt-2 break-all text-sm text-slate-600" data-upload-target="archiveName" aria-live="polite"></p>
+      <p class="mt-2 text-xs text-slate-600">The complete upload request must fit within 40 MiB, including ZIP and form overhead.</p>
+    </fieldset>
+    <details class="mt-6 border-t border-slate-200 pt-5" <%= 'open' if %w[columns class prefix].any? { |name| !form_option(name).empty? } %>>
+      <summary class="cursor-pointer font-semibold">Advanced options</summary>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div><label for="columns" class="mb-1 block text-sm font-semibold">Columns</label><input class="field" id="columns" name="options[columns]" type="number" min="1" step="1" placeholder="5" value="<%= h(form_option('columns')) %>"></div>
+        <div><label for="css-class" class="mb-1 block text-sm font-semibold">CSS class</label><input class="field" id="css-class" name="options[class]" type="text" placeholder="sprite" value="<%= h(form_option('class')) %>"></div>
+        <div><label for="css-prefix" class="mb-1 block text-sm font-semibold">CSS prefix</label><input class="field" id="css-prefix" name="options[prefix]" type="text" placeholder="Same as CSS class" value="<%= h(form_option('prefix')) %>"></div>
+      </div>
+      <p class="mt-3 text-xs leading-relaxed text-slate-600">Leave blank for defaults. CSS names accept letters, digits, underscores, and hyphens; they cannot start with a digit.</p>
+    </details>
+    <p class="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900" data-upload-target="error" role="alert" tabindex="-1" hidden></p>
+    <button type="submit" class="mt-6 w-full rounded-lg bg-sky-800 px-5 py-3 font-semibold text-white shadow-sm hover:bg-sky-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 sm:w-auto">Download sprite sheet ZIP</button>
+  </form>
+</section>

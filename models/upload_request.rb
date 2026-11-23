@@ -8,11 +8,11 @@ class UploadRequest
 
   def initialize(params, limits: ProcessingLimits.current)
     @archive = upload(params[:archive_file])
-    collection = params[:image_files] || {}
+    collection = params[:image_files] || []
 
-    raise ValidationError, 'Image files must be a collection of uploads.' unless collection.is_a?(Hash)
+    raise ValidationError, 'Image files must be a collection of uploads.' unless collection.is_a?(Array)
 
-    @images = collection.values.filter_map { |value| upload(value) }
+    @images = collection.filter_map { |value| upload(value) }
 
     raise ValidationError, 'Choose images or a ZIP archive, not both.' if archive && !images.empty?
     raise ValidationError, 'No file(s) selected.' unless archive || !images.empty?

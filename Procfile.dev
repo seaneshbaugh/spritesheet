@@ -1,0 +1,2 @@
+web: bin/server
+css: bin/css watch

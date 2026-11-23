@@ -18,6 +18,7 @@ RUN bundle install
 COPY config/imagemagick-policy.xml /etc/ImageMagick-7/policy.xml
 
 COPY . .
+RUN bin/css build
 
 EXPOSE 3000
-CMD ["bin/server"]
+CMD ["bin/dev"]

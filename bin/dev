@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
+export APP_PORT="${APP_PORT:-3000}"
+bin/css build
+exec bundle exec foreman start -f Procfile.dev -p "$APP_PORT" "$@"

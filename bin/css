@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'fileutils'
+
+mode = ARGV.shift || 'build'
+abort 'Usage: bin/css [build|watch]' unless %w[build watch].include?(mode)
+
+Dir.chdir(File.expand_path('..', __dir__))
+FileUtils.mkdir_p('public/css')
+arguments = ['-i', 'assets/stylesheets/app.css', '-o', 'public/css/app.css']
+arguments << (mode == 'watch' ? '--watch=always' : '--minify')
+exec('bundle', 'exec', 'tailwindcss', *arguments)

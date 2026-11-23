@@ -25,7 +25,7 @@ class ResourceLimitsTest < Minitest::Test
   def test_direct_image_byte_boundary_without_large_fixtures
     image = create_image('image.png', 'red')
     tempfile = File.open(image)
-    params = { image_files: { first: { filename: 'image.png', tempfile: tempfile } } }
+    params = { image_files: [{ filename: 'image.png', tempfile: tempfile }] }
     bytes = File.size(image)
 
     assert UploadRequest.new(params, limits: ProcessingLimits.new(image_bytes: bytes))
@@ -43,7 +43,7 @@ class ResourceLimitsTest < Minitest::Test
     File.open(image, 'wb') { |file| file.truncate(32 * 1024 * 1024) }
 
     File.open(image) do |file|
-      params = { image_files: { first: { filename: 'image.png', tempfile: file } } }
+      params = { image_files: [{ filename: 'image.png', tempfile: file }] }
 
       assert UploadRequest.new(params)
 

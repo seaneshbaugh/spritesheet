@@ -1,6 +1,2 @@
-default_encoding: "utf-8"
-
 protection:
   except: :json_csrf
-
-webpack_dev_server_url: "http://localhost:8080/"

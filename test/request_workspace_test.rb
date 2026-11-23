@@ -109,7 +109,7 @@ class RequestWorkspaceTest < Minitest::Test
     session = Rack::Test::Session.new(Rack::MockSession.new(app))
 
     3.times do
-      session.post('/', image_files: { first: Rack::Test::UploadedFile.new(image, 'image/png') })
+      session.post('/', image_files: [Rack::Test::UploadedFile.new(image, 'image/png')])
       assert_equal 200, session.last_response.status
       session.post('/')
       assert_equal 422, session.last_response.status

@@ -9,6 +9,7 @@ require 'bundler/setup'
 Bundler.require(:default)
 
 require 'erb'
+require 'json'
 require 'fileutils'
 require 'tmpdir'
 require 'sinatra/config_file'

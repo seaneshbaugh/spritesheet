@@ -4,37 +4,86 @@ Generates a spritesheet and corresponding CSS for a collection of images.
 
 ## Development
 
-Docker and Docker Compose are the only host prerequisites.
+Docker and Docker Compose are the only host prerequisites. Build the image,
+refresh the named gem cache, and start the development service:
 
 ```sh
-docker compose build sinatra
-docker compose up sinatra webpack
+docker compose build web
+docker compose run --rm --no-deps web bundle install
+docker compose up -d --remove-orphans web
 ```
 
-Open http://localhost:3000. The React/Webpack frontend is temporarily retained
-while the Ruby runtime is modernized; its replacement is planned in TODO.md.
-The application container uses Ruby 4.0.9 and ImageMagick 7.
+Open http://localhost:3000. `--remove-orphans` removes the old Sinatra/Webpack
+containers when migrating from the previous setup; their images/volumes are not
+deleted. Only the `web` service is needed for normal development.
+
+`bin/dev` builds CSS before starting Puma and the Tailwind watcher through
+`Procfile.dev`/Foreman. The watcher stays alive without a TTY. ERB templates and
+Ruby helpers/models reload in development; Tailwind recompiles after source edits.
+Refresh the browser to see changes, including versioned JavaScript modules.
+
+After Gemfile or Gemfile.lock changes, repeat the build and `bundle install`
+commands above, then recreate the web service. The container uses Ruby 4.0.9 and
+ImageMagick 7. No host Ruby, Node, Yarn, Sass, or browser install is needed.
+
+## Assets and form
+
+The form is rendered by ERB. Stimulus adds mode switching, filenames,
+previews, a clear-selection button, and advisory client validation. The single
+image input accepts multiple files: Browse replaces the selection, while dropping
+files onto the input or its surrounding panel appends them in drop order after
+the existing files. Each preview has a Remove button for that individual file;
+Clear image selection removes all files. Advanced options use native `details`.
+Submission remains a normal multipart POST returning a ZIP. Without JavaScript,
+both upload sections remain available: select files in only one section; the
+native image chooser supports multiple files. Validation errors preserve options
+and upload mode, but require selecting files again.
+
+JavaScript uses native ES modules and an import map. Stimulus 3.2.2 is vendored
+locally; source, license, checksums, and upgrade steps are recorded in
+`public/js/vendor/README.txt`. There are no runtime CDN requests. A content digest
+versions the stylesheet, entrypoint, and import-map module URLs together.
+
+Tailwind's standalone CLI is supplied by `tailwindcss-ruby`, with plain CSS input
+at `assets/stylesheets/app.css`. It scans the specified ERB templates, helpers,
+and Stimulus controllers; keep utility class names as complete literals. Generated
+sprite CSS is separate and is not included in Tailwind's scan. The application
+CSS output is ignored by Git and compiled into Docker images or before dev/tests.
+
+```sh
+docker compose run --rm --no-deps web bin/css build  # minified build
+```
+
+This replaces React, Materialize, Webpack/Babel, Sass, and the Node/Yarn toolchain.
+Production image packaging remains a later TODO section; start Puma directly with
+`bin/server` after building assets when checking server-only operation.
 
 ## Tests
 
-The Minitest suite runs entirely in the application container, including real
-ImageMagick generation and ZIP round trips. It does not need the Webpack service.
+The default Minitest suite runs inside the application container, including real
+ImageMagick generation, ZIP round trips, request tests, and Puma lifecycle checks.
+It builds CSS automatically and does not start a browser.
 
 ```sh
-docker compose run --rm --no-deps sinatra bundle exec rake test
+docker compose run --rm --no-deps web bundle exec rake test
 ```
 
-The default Rake task also runs the suite. Dependencies are installed into a
-named Docker volume. After changing Gemfile or Gemfile.lock, rebuild the image
-and refresh an existing dependency volume:
+For real Firefox tests, start the optional Selenium profile, then run the separate
+system suite. It starts an isolated Puma process inside the test container and
+checks interactions, error recovery, downloads, mobile layout, object-URL cleanup,
+and the no-JavaScript fallback. No host port is needed for the test app.
 
 ```sh
-docker compose build sinatra
-docker compose run --rm --no-deps sinatra bundle install
+docker compose --profile system-test up -d --wait selenium
+docker compose --profile system-test run --rm --no-deps web bundle exec rake test:system
+# Or run both suites:
+docker compose --profile system-test run --rm --no-deps web bundle exec rake test:all
+docker compose stop selenium
 ```
 
-Production and deployment modernization are planned separately; this Dockerfile
-is for development and tests.
+Screenshots are saved under ignored `tmp/screenshots/`. If tests fail while
+Selenium is unavailable, start it with the profile command above. Ordinary
+application logs are available through `docker compose logs -f web`.
 
 ## Supported inputs and generated output
 

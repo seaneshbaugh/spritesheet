@@ -5,8 +5,7 @@
 
 /* SITE */
   Created On: 2014/04/04
-  Last Updated: 2019/10/09
+  Last Updated: 2026/11/22
   Made In: Emacs
-  Made On: macOS
-  Made With: Sinatra, React
+  Made With: Sinatra
   Source Available At: https://github.com/seaneshbaugh/spritesheet

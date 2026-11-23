@@ -53,7 +53,7 @@ class RuntimeServerTest < Minitest::Test
   end
 
   def multipart(content)
-    "--sample\r\nContent-Disposition: form-data; name=\"image_files[first]\"; filename=\"one.png\"\r\nContent-Type: image/png\r\n\r\n".b +
+    "--sample\r\nContent-Disposition: form-data; name=\"image_files[]\"; filename=\"one.png\"\r\nContent-Type: image/png\r\n\r\n".b +
       content + "\r\n--sample--\r\n"
   end
 

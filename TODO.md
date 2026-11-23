@@ -1,7 +1,7 @@
 # Spritesheet modernization plan
 
 Planning baseline: November 11, 2026. This document proposes implementation
-commits for review. Sections 1–3 have been implemented locally; no deployment changes
+commits for review. Sections 1–5 have been implemented locally; no deployment changes
 have been made. Checkboxes track completed work and remaining verification.
 
 ## Agreed direction
@@ -265,56 +265,129 @@ was added, and no Git commit was created for this section.
 
 ## Commit 4 — Replace React with server-rendered ERB and Stimulus
 
-- [ ] Render the complete multipart form in ERB so initial rendering and errors
+- [x] Render the complete multipart form in ERB so initial rendering and errors
   do not depend on React mounting. Keep the final download a normal form POST.
-- [ ] Vendor the pinned Stimulus module with provenance and license; load local
+- [x] Vendor the pinned Stimulus module with provenance and license; load local
   controllers as native modules with no runtime CDN or Node requirement.
-- [ ] Implement image/archive switching with disabled inactive fields, add/remove
-  image rows, selected filenames, previews, and advanced-options disclosure.
-- [ ] Use valid, stable field names and IDs. Prefer an ordered image_files[]
+- [x] Implement image/archive switching with disabled inactive fields, a single
+  multiple-file input, clear selection, append-on-drop, selected filenames,
+  previews, and advanced-options disclosure.
+- [x] Use valid, stable field names and IDs. Prefer an ordered image_files[]
   parameter array and update server parsing/tests accordingly. Avoid hashing dates.
-- [ ] Revoke preview object URLs on replacement/removal/disconnect. Handle removing
+- [x] Revoke preview object URLs on replacement/removal/disconnect. Handle removing
   the final image by retaining or recreating an empty usable row.
-- [ ] Preserve non-file options after validation errors and explain when files
+- [x] Preserve non-file options after validation errors and explain when files
   must be selected again. Browsers cannot repopulate file inputs.
-- [ ] Add labels, keyboard-operable buttons, sensible input types/accept values,
+- [x] Add labels, keyboard-operable buttons, sensible input types/accept values,
   accessible error announcements, and a basic usable form without JavaScript.
-- [ ] Show supported formats, equal-dimension/static-GIF restrictions, and the
+- [x] Show supported formats, equal-dimension/static-GIF restrictions, and the
   32 MiB aggregate limit. Keep client checks aligned with server messages.
-- [ ] Verify rendered multipart names with request tests and manually exercise
-  switching, previews, row removal, error recovery, and a downloaded ZIP.
+- [x] Verify rendered multipart names with request tests and manually exercise
+  switching, previews, clearing/replacing/appending files, error recovery, and a downloaded ZIP.
 
 ## Commit 5 — Adopt Tailwind and remove the legacy asset toolchain
 
-- [ ] Add current compatible tailwindcss-ruby and plain CSS input. Provide explicit
+- [x] Add current compatible tailwindcss-ruby and plain CSS input. Provide explicit
   build/watch commands suitable for Sinatra rather than adding tailwindcss-rails.
-- [ ] Scan ERB, helpers, and Stimulus source deliberately. Keep complete utility
+- [x] Scan ERB, helpers, and Stimulus source deliberately. Keep complete utility
   names visible to Tailwind and ensure generated sprite CSS is not processed as
   application styling.
-- [ ] Recreate a small responsive interface with Tailwind, retaining useful
+- [x] Recreate a small responsive interface with Tailwind, retaining useful
   identity/background attribution where applicable. No extensive redesign is needed.
-- [ ] Link the compiled CSS explicitly in the layout and test production output.
+- [x] Link the compiled CSS explicitly in the layout and test production output.
   Define a simple cache-versioning approach for local JS and compiled CSS.
-- [ ] Add bin/dev and Procfile.dev with Puma and a Tailwind watcher. Ensure the
+- [x] Add bin/dev and Procfile.dev with Puma and a Tailwind watcher. Ensure the
   watcher survives noninteractive Docker use and both processes stop cleanly.
-- [ ] Reduce development Compose to one web service plus named dependency cache.
+- [x] Reduce development Compose to one web service plus named dependency cache.
   Standardize the application port setting and document watcher/reload behavior.
-- [ ] Remove assets/package.json, yarn.lock, Webpack configuration, JSX, Sass,
+- [x] Remove assets/package.json, yarn.lock, Webpack configuration, JSX, Sass,
   Dockerfile.webpack, webpack helper/settings, React-related dependencies, and
   obsolete public Bootstrap/jQuery assets after checking references.
-- [ ] Verify clean checkout startup, CSS rebuilds after template edits, local
+- [x] Verify clean checkout startup, CSS rebuilds after template edits, local
   module loading, and a minified production CSS build without Node/Yarn/Sass.
+
+### Sections 4 and 5 verification (November 21, 2026)
+
+Implemented together because the existing Webpack container could not start and
+both sections replace the same frontend/build boundary. The form is now ERB with
+ordered image_files[] uploads and a local Stimulus controller. It supports mode
+switching, disabled inactive fields, a multiple-file input, clear selection, filenames,
+previews, object-URL release, native advanced-options disclosure, advisory byte
+checks, and normal browser ZIP downloads. Server errors preserve escaped non-file
+options and upload mode, explain file reselection, and receive accessible focus.
+Without JavaScript both input sections remain usable, with native multiple-image
+selection and server validation.
+
+Tailwind 4.3.4 runs through tailwindcss-ruby; source is plain CSS with explicit
+ERB/helper/controller scanning. The old React, Webpack/Babel, Materialize, Sass,
+Node/Yarn lockfiles/configuration, Bootstrap/jQuery, and unused font files are
+removed. Stimulus 3.2.2 is vendored with its MIT license, source provenance, package
+integrity verification, SHA-256 checksums, and upgrade instructions. A shared
+content digest versions local stylesheet/JavaScript/import-map URLs. No runtime
+CDN or host Node/Ruby installation is needed. The original background and license
+attribution are retained with a modest responsive form refresh.
+
+Normal development now uses the single web service. bin/dev builds CSS before
+Foreman starts Puma and the noninteractive Tailwind watcher from Procfile.dev.
+Docker images also build minified CSS. Browser checks use an optional Selenium
+profile and test-only Ruby client; they do not run in the default fast suite.
+That small portion of section 6 was brought forward to verify the frontend change.
+
+Verified:
+
+- Docker build and clean image dependency installation, including the standalone
+  Tailwind CLI, succeed. An existing bundle volume can be refreshed with the
+  documented Docker command.
+- The request/processing suite passes: 46 tests, 363 assertions.
+- Firefox passes: 5 tests, 39 assertions, including actual ZIP downloads with
+  and without JavaScript, mode switching, image previews, selection cleanup,
+  labels/IDs, option recovery, local versioned modules, mobile
+  layout, and object-URL release on replacement/removal/disconnect.
+- The running CSS watcher rebuilds after a source edit without a TTY.
+- The running web service serves the form successfully. Foreman shuts down both
+  Puma and the watcher gracefully; the container exits with status 0 and restarts.
+- Ruby lint and git diff --check pass. README documents migration, build/watch,
+  cache refresh, and ordinary/browser test commands. Screenshots are available
+  under ignored tmp/screenshots/.
+
+The old project Sinatra/Webpack development containers were replaced with web;
+old images and volumes were not deleted. No production deployment or Git commit
+was performed. CI, broader lint configuration/dependency audits, and production
+packaging remain in later sections.
+
+### Image selection refinement (November 22, 2026)
+
+Removed the redundant image-row controls and template/partial. The form now has
+one native multiple-file input and a Clear image selection button. Browse uses
+the browser's replacement selection; file drops on the input or surrounding panel
+append to the actual FileList, preserving existing order followed by dropped
+order. Clearing resets the file input, previews, and client error and revokes
+preview URLs. Native multipart submission and the no-JavaScript fallback remain.
+
+Verified through test:all in Docker: 46 regular tests / 368 assertions and 7
+Firefox tests / 60 assertions, all passing. Browser coverage checks input and
+panel drops, multiple/repeated drops, Browse replacement, clearing, object-URL
+cleanup, and actual generated sprite pixels in appended order. Ruby lint and
+git diff --check pass.
+
+Per-image removal follow-up: each preview now has a compact light-red Remove
+button beneath its filename. It removes by selection index (including duplicate
+names), preserves remaining order, revokes replaced preview URLs, and moves focus
+to the next Remove button or the file input. Removing the final file also disables
+the clear-all button. Firefox suite: 9 tests / 76 assertions pass, including actual
+ZIP pixels after middle-image removal and duplicate/final-image cleanup. Ruby lint
+and git diff --check pass.
 
 ## Commit 6 — Add containerized browser checks and CI
 
-- [ ] Add a small Capybara/Selenium browser suite using Minitest. Use a Compose
+- [x] Add a small Selenium browser suite using Minitest. Use a Compose
   system-test profile, following wishlist, so browsers are not installed on the host.
-- [ ] Configure the test app's reachable bind address, remote browser URL, and
+- [x] Configure the test app's reachable bind address, remote browser URL, and
   allowed test hosts. Keep browser fixtures and temporary downloads isolated.
-- [ ] Cover image/archive switching, filename/preview changes, adding/removing
+- [x] Cover image/archive switching, filename/preview changes, adding/removing
   the final row, advanced options, and validation recovery. Confirm the successful
   ZIP response through request tests and a real-browser download check if reliable.
-- [ ] Keep model/request tests fast and independent of Selenium; provide separate
+- [x] Keep model/request tests fast and independent of Selenium; provide separate
   commands for the default suite and system suite, plus a command for both.
 - [ ] Proposed default: add GitHub Actions to build the Docker image and run the
   same containerized test commands. This was not explicitly selected in the reply;
@@ -396,7 +469,7 @@ the plan before editing the deployment repository.
 - Mixed image dimensions with tested packing and matching CSS coordinates.
 - An age-based production cleanup job for abandoned request directories. Design it
   around a dedicated prefix/root and active-job protection; never broadly sweep /tmp.
-- Additional formats, richer previews, drag-and-drop, sorting/reordering, and any
+- Additional formats, richer previews, sorting/reordering, and any
   background processing only when an actual usage need justifies them.
 
 ## Sources checked during planning

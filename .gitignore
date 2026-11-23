@@ -5,3 +5,4 @@
 node_modules
 tmp/
 !tmp/pids/.keep
+/public/css/app.css

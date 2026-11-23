@@ -37,7 +37,7 @@ class InputValidationTest < Minitest::Test
     assert_invalid({}, 'No file(s) selected.')
     assert_invalid({ archive_file: 'not a file' }, 'Invalid file upload.')
     assert_invalid({ image_files: 'not a collection' }, 'collection of uploads')
-    assert_invalid({ image_files: { first: 'not a file' } }, 'Invalid file upload.')
+    assert_invalid({ image_files: ['not a file'] }, 'Invalid file upload.')
     assert_invalid({ archive_file: { filename: 'images.zip' } }, 'Invalid file upload.')
   end
 
@@ -45,16 +45,16 @@ class InputValidationTest < Minitest::Test
     image = create_image('red.png', 'red')
     archive = zip_with('red.png' => File.binread(image))
 
-    assert_invalid({ archive_file: uploaded(archive), image_files: { first: uploaded(image) } }, 'not both')
+    assert_invalid({ archive_file: uploaded(archive), image_files: [uploaded(image)] }, 'not both')
   end
 
   def test_invalid_options
     image = create_image('red.png', 'red')
 
-    assert_invalid({ image_files: { first: uploaded(image) }, options: 'wrong' }, 'Options')
+    assert_invalid({ image_files: [uploaded(image)], options: 'wrong' }, 'Options')
 
     [{ columns: ['2'] }, { unexpected: 'value' }].each do |options|
-      assert_invalid({ image_files: { first: uploaded(image) }, options: options }, 'Invalid spritesheet options.')
+      assert_invalid({ image_files: [uploaded(image)], options: options }, 'Invalid spritesheet options.')
     end
   end
 
@@ -63,19 +63,19 @@ class InputValidationTest < Minitest::Test
 
     File.write(corrupt, 'not an image')
 
-    assert_invalid({ image_files: { first: uploaded(corrupt) } }, 'Invalid image data')
+    assert_invalid({ image_files: [uploaded(corrupt)] }, 'Invalid image data')
 
     other = File.join(@directory, 'image.jpg')
 
     FileUtils.cp(create_image('red.png', 'red'), other)
 
-    assert_invalid({ image_files: { first: uploaded(other) } }, 'Only PNG and static GIF')
+    assert_invalid({ image_files: [uploaded(other)] }, 'Only PNG and static GIF')
 
     disguised = File.join(@directory, 'disguised.png')
 
     FileUtils.cp(create_image('red.gif', 'red'), disguised)
 
-    assert_invalid({ image_files: { first: uploaded(disguised) } }, 'must match')
+    assert_invalid({ image_files: [uploaded(disguised)] }, 'must match')
   end
 
   def test_empty_invalid_and_unsupported_archives
@@ -117,14 +117,14 @@ class InputValidationTest < Minitest::Test
   def test_invalid_columns_and_css_names_return_422
     image = create_image('red.png', 'red')
 
-    assert_invalid({ image_files: { first: uploaded(image) }, options: { columns: '-1' } }, 'positive whole number')
-    assert_invalid({ image_files: { first: uploaded(image) }, options: { class: '<script>' } }, 'valid CSS identifier')
+    assert_invalid({ image_files: [uploaded(image)], options: { columns: '-1' } }, 'positive whole number')
+    assert_invalid({ image_files: [uploaded(image)], options: { class: '<script>' } }, 'valid CSS identifier')
   end
 
   def test_blank_options_use_defaults_and_prefix_follows_class
     image = create_image('red.png', 'red')
 
-    post '/', image_files: { first: uploaded(image) }, options: { columns: ' ', class: ' icon ', prefix: '' }
+    post '/', image_files: [uploaded(image)], options: { columns: ' ', class: ' icon ', prefix: '' }
 
     assert_equal 200, last_response.status
 
